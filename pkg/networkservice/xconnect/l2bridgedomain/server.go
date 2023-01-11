@@ -71,9 +71,6 @@ func (v *l2BridgeDomainServer) Request(ctx context.Context, request *networkserv
 }
 
 func (v *l2BridgeDomainServer) Close(ctx context.Context, conn *networkservice.Connection) (*empty.Empty, error) {
-	if !ok || conn.GetPayload() != payload.Ethernet {
-		return next.Server(ctx).Close(ctx, conn)
-	}
 	if err := delBridgeDomain(ctx, v.vppConn, &v.b); err != nil {
 		log.FromContext(ctx).WithField("l2BridgeDomain", "server").Error("delBridgeDomain", err)
 	}
