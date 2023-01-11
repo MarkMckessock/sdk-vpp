@@ -40,11 +40,10 @@ type bridgeDomain struct {
 }
 
 type bridgeDomainKey struct {
-	vlanID        uint32
 	clientIfIndex interface_types.InterfaceIndex
 }
 
-func addBridgeDomain(ctx context.Context, vppConn api.Connection, bridges *l2BridgeDomain, vlanID uint32) error {
+func addBridgeDomain(ctx context.Context, vppConn api.Connection, bridges *l2BridgeDomain) error {
 	clientIfIndex, ok := ifindex.Load(ctx, true)
 	if !ok {
 		return nil
@@ -54,9 +53,7 @@ func addBridgeDomain(ctx context.Context, vppConn api.Connection, bridges *l2Bri
 		return nil
 	}
 
-	// key <vlanID, clientIfIndex> to handle the vlanID == 0 case
 	key := bridgeDomainKey{
-		vlanID:        vlanID,
 		clientIfIndex: clientIfIndex,
 	}
 	l2Bridge, ok := bridges.Load(key)
@@ -90,10 +87,9 @@ func addBridgeDomain(ctx context.Context, vppConn api.Connection, bridges *l2Bri
 	return nil
 }
 
-func delBridgeDomain(ctx context.Context, vppConn api.Connection, bridges *l2BridgeDomain, vlanID uint32) error {
+func delBridgeDomain(ctx context.Context, vppConn api.Connection, bridges *l2BridgeDomain) error {
 	if clientIfIndex, ok := ifindex.Load(ctx, true); ok {
 		key := bridgeDomainKey{
-			vlanID:        vlanID,
 			clientIfIndex: clientIfIndex,
 		}
 		l2Bridge, ok := bridges.Load(key)
@@ -116,7 +112,7 @@ func delBridgeDomain(ctx context.Context, vppConn api.Connection, bridges *l2Bri
 				if err != nil {
 					return err
 				}
-				err = delVppSubIf(ctx, vppConn, vlanID, clientIfIndex)
+				err = delVppSubIf(ctx, vppConn, clientIfIndex)
 				if err != nil {
 					return err
 				}
@@ -177,16 +173,12 @@ func addDelVppInterfaceBridgeDomain(ctx context.Context, vppConn api.Connection,
 	return nil
 }
 
-func delVppSubIf(ctx context.Context, vppConn api.Connection, vlanID uint32, swIfIndex interface_types.InterfaceIndex) error {
-	if vlanID == 0 {
-		ifindex.Delete(ctx, true)
-		return nil
-	}
+func delVppSubIf(ctx context.Context, vppConn api.Connection, swIfIndex interface_types.InterfaceIndex) error {
 	now := time.Now()
-	vlanSubif := &interfaces.DeleteSubif{
+	subif := &interfaces.DeleteSubif{
 		SwIfIndex: swIfIndex,
 	}
-	_, err := interfaces.NewServiceClient(vppConn).DeleteSubif(ctx, vlanSubif)
+	_, err := interfaces.NewServiceClient(vppConn).DeleteSubif(ctx, subif)
 	if err != nil {
 		return errors.WithStack(err)
 	}

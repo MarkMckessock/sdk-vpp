@@ -30,7 +30,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/postpone"
 
-	"github.com/networkservicemesh/sdk-vpp/pkg/networkservice/mechanisms/vlan"
 )
 
 type l2BridgeDomainServer struct {
@@ -57,13 +56,7 @@ func (v *l2BridgeDomainServer) Request(ctx context.Context, request *networkserv
 		return nil, err
 	}
 
-	// return if the belonging remote mechanism not vlan mechanism
-	vlanID, ok := vlan.Load(ctx, true)
-	if !ok {
-		return conn, nil
-	}
-
-	if err := addBridgeDomain(ctx, v.vppConn, &v.b, vlanID); err != nil {
+	if err := addBridgeDomain(ctx, v.vppConn); err != nil {
 		closeCtx, cancelClose := postponeCtxFunc()
 		defer cancelClose()
 
@@ -78,11 +71,10 @@ func (v *l2BridgeDomainServer) Request(ctx context.Context, request *networkserv
 }
 
 func (v *l2BridgeDomainServer) Close(ctx context.Context, conn *networkservice.Connection) (*empty.Empty, error) {
-	vlanID, ok := vlan.Load(ctx, true)
 	if !ok || conn.GetPayload() != payload.Ethernet {
 		return next.Server(ctx).Close(ctx, conn)
 	}
-	if err := delBridgeDomain(ctx, v.vppConn, &v.b, vlanID); err != nil {
+	if err := delBridgeDomain(ctx, v.vppConn, &v.b); err != nil {
 		log.FromContext(ctx).WithField("l2BridgeDomain", "server").Error("delBridgeDomain", err)
 	}
 	return next.Server(ctx).Close(ctx, conn)
