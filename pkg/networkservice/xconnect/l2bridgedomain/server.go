@@ -56,7 +56,7 @@ func (v *l2BridgeDomainServer) Request(ctx context.Context, request *networkserv
 		return nil, err
 	}
 
-	if err := addBridgeDomain(ctx, v.vppConn); err != nil {
+	if err := addBridgeDomain(ctx, v.vppConn, &v.b); err != nil {
 		closeCtx, cancelClose := postponeCtxFunc()
 		defer cancelClose()
 
